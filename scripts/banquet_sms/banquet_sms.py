@@ -7,26 +7,32 @@
 import sys
 import csv
 import urllib
+import requests
 
-sms_password = ""
 def send_sms(phone_number, message):
-    sms_url='http://smsserver.pixie.se/sendsms?'
-    data=urllib.urlencode({
-                            'account':'10910843',
-                            'pwd':sms_password,
-                            'receivers':phone_number,
-                            'sender':'Armada',
-                            'message':message
-                            })
-    sms_service = urllib.urlopen(sms_url+data)
-    response = sms_service.read()
-    sms_service.close()
+
+    auth = (
+	'ue222c7eb24ed71b2b889ed809cda74d3',
+	'58434E29C22A17B1EE2513000FD45657'
+	)
+
+    fields = {
+	'from': 'Armada',
+	'to': phone_number,
+	'message': message
+	}
+
+    response = requests.post(
+	"https://api.46elks.com/a1/SMS",
+	data=fields,
+	auth=auth
+	)
+
     return response
 
 def make_message_for(attendee):
-    name=attendee['Name'].split(" ")
-    name=name[0]
-    message="Välkommen till banquet "+name+", du sitter vid bord "+attendee['Table']+" vid plats "+attendee['Placement Number']+"."
+    name=attendee['first_name']
+    message="Välkommen till banquet "+name+", du sitter vid bord "+attendee['table_name']+" vid plats "+attendee['seat_number']+"."
     return message
 
 def main():
@@ -35,14 +41,13 @@ def main():
     number_of_errors = 0
     number_of_readins = 0
 
-    sms_password = raw_input("SMS service password: ")
 
     with open(str(sys.argv[1]), 'rb') as csvfile:
         # Read the CSV as a python dict
-        banquet_attendence = csv.DictReader(csvfile, delimiter=';')
+        banquet_attendence = csv.DictReader(csvfile, delimiter=',')
         for attendee in banquet_attendence:
             # This simply strips out everything that is not a number (1234567890)
-            phone_number="".join(_ for _ in attendee['Cell Phone Number'] if _ in "1234567890")
+            phone_number="".join(_ for _ in attendee['phone_number'] if _ in "1234567890")
 
             if phone_number.startswith("07"):
                 phone_number=phone_number[1:]
@@ -53,10 +58,10 @@ def main():
             phone_number="46"+phone_number
             send_to_this=1
             if len(phone_number)!=11:
-                error_file.write("Phone number error: "+phone_number+"("+attendee['Cell Phone Number']+"), ")
+                error_file.write("Phone number error: "+phone_number+"("+attendee['phone_number']+"), ")
                 send_to_this=0
 
-            if attendee['Table']=="" or attendee['Placement Number']=="":
+            if attendee['table_name']=="" or attendee['seat_number']=="":
                 error_file.write("Placement error, ")
                 send_to_this=0
 
@@ -65,11 +70,11 @@ def main():
                 attendees.append( (phone_number, make_message_for(attendee)) )
                 number_of_readins += 1
             else:
-                error_file.write("Error with "+attendee['Name']+"(id:"+attendee['Id']+")\n")
+                error_file.write("Error with "+attendee['first_name']+" "+attendee['last_name']+"\n")
                 number_of_errors += 1
 
     print("\nWe had %d errors, but %d attendees were read in correctly, see errors.txt for more information.\n"%(number_of_errors, number_of_readins))
-    print("A total of %d text messages will be sent out. The price will be %.2f SEK" % (len(attendees), len(attendees)*0.50 ))
+    print("A total of %d text messages will be sent out. The price will be %.2f SEK" % (len(attendees), len(attendees)*0.35 ))
     print("Would you like to continue? (yes/no)") 
     error_file.close()
     choice = raw_input().lower()
