@@ -32,7 +32,7 @@ def send_sms(phone_number, message):
 
 def make_message_for(attendee):
     name=attendee['first_name']
-    message="Välkommen till banquet "+name+", du sitter vid bord "+attendee['table_name']+" vid plats "+attendee['seat_number']+"."
+    message = "Welcome "+attendee['first_name']+", to the grand banquet of THS Armada! You Are seated at table "+attendee['table_name']+", seat "+attendee['seat_number']+". The doors will open 18:00 at Annexet, globen."
     return message
 
 def main():
